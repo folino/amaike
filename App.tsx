@@ -286,13 +286,32 @@ const App: React.FC = () => {
     setCurrentTip(null);
   };
 
+  const handleStartTipCollection = () => {
+    // Add a message to start the tip collection flow
+    const tipCollectionMessage: ChatMessageType = {
+      id: Date.now(),
+      sender: 'user',
+      text: 'Quiero compartir información sobre este tema'
+    };
+    
+    setMessages(prev => [...prev, tipCollectionMessage]);
+    setIsLoading(true);
+    
+    // The AI will respond with the tip collection flow
+    handleSendMessage('Quiero compartir información sobre este tema');
+  };
+
   return (
     <div className="flex flex-col h-dvh font-sans">
       <Header />
       <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <div className="max-w-4xl mx-auto">
           {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
+            <ChatMessage 
+              key={msg.id} 
+              message={msg} 
+              onStartTipCollection={handleStartTipCollection}
+            />
           ))}
           {isLoading && (
             <div className="flex justify-start mb-4">
