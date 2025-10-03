@@ -7,7 +7,9 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
 - **Búsqueda Inteligente**: Utiliza Google Gemini AI para buscar información específica en eleco.com.ar
 - **Interfaz Conversacional**: Chat intuitivo y fácil de usar
 - **Fuentes Verificadas**: Solo muestra información de artículos publicados en El Eco de Tandil
-- **Recopilación de Información**: Permite a los usuarios enviar tips y noticias
+- **Recopilación Estructurada de Información**: Sistema avanzado para recopilar tips de noticias con datos estructurados
+- **Validación de Datos**: Verificación automática de la completitud de la información
+- **Envío Automático**: Integración con API backend y fallback a email
 - **Citas Automáticas**: Siempre incluye enlaces a los artículos fuente
 
 ## 🛠️ Tecnologías
@@ -41,6 +43,8 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
    Crea un archivo `.env` en la raíz del proyecto:
    ```env
    API_KEY=tu_api_key_de_google_gemini
+   REACT_APP_TIP_SUBMISSION_URL=https://api.eleco.com.ar/tips
+   REACT_APP_SUBMISSION_API_KEY=tu_api_key_para_submisiones
    ```
 
 4. **Ejecuta el proyecto en modo desarrollo**
@@ -56,9 +60,12 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
 │   ├── ChatMessage.tsx  # Componente para mostrar mensajes
 │   ├── Header.tsx       # Cabecera de la aplicación
 │   ├── LoadingIndicator.tsx # Indicador de carga
-│   └── SourceLink.tsx   # Enlaces a fuentes
+│   ├── SourceLink.tsx   # Enlaces a fuentes
+│   ├── TipConfirmation.tsx # Confirmación de datos recopilados
+│   └── TipSubmissionStatus.tsx # Estado del envío de tips
 ├── services/            # Servicios
-│   └── geminiService.ts # Integración con Google Gemini
+│   ├── geminiService.ts # Integración con Google Gemini
+│   └── tipSubmissionService.ts # Servicio para envío de tips
 ├── constants.ts         # Constantes y prompt del sistema
 ├── types.ts           # Definiciones de tipos TypeScript
 ├── App.tsx            # Componente principal
@@ -72,18 +79,25 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
 2. **Procesamiento AI**: Google Gemini procesa la consulta con búsqueda web habilitada
 3. **Filtrado de Fuentes**: Solo se muestran resultados de eleco.com.ar
 4. **Respuesta Contextual**: AmAIke responde basándose únicamente en el contenido del periódico
+5. **Recopilación de Tips**: Si no se encuentran artículos relevantes, AmAIke ofrece la opción de recopilar información nueva
 
 ### Características Especiales
-- **Recopilación de Tips**: Cuando un usuario aporta información nueva, AmAIke puede recopilar detalles adicionales
+- **Recopilación Estructurada de Tips**: Sistema avanzado que recopila información de manera estructurada (qué, cuándo, dónde, quién, cómo)
+- **Detección Inteligente**: Identifica cuando no se encuentra información útil, incluso si hay resultados parciales
 - **Validación de Plausibilidad**: Evalúa si la información aportada es lógicamente posible
+- **Validación de Completitud**: Verifica que todos los campos necesarios estén completos
+- **Categorización Automática**: Clasifica los tips por categoría (accidente, crimen, política, etc.)
+- **Niveles de Urgencia**: Determina la prioridad del tip (baja, media, alta)
+- **Envío Automático**: Integración con API backend con fallback a email
 - **Citas Obligatorias**: Siempre incluye enlaces a los artículos fuente
 
 ## 🎯 Casos de Uso
 
-- Buscar noticias específicas sobre eventos locales
-- Consultar información sobre funcionarios municipales
-- Encontrar artículos sobre temas específicos de Tandil
-- Enviar tips y noticias a la redacción
+- **Búsqueda de Información**: Buscar noticias específicas sobre eventos locales
+- **Consulta de Funcionarios**: Consultar información sobre funcionarios municipales
+- **Exploración de Temas**: Encontrar artículos sobre temas específicos de Tandil
+- **Recopilación de Tips**: Cuando no se encuentra información, recopilar nuevos datos de usuarios
+- **Envío de Información**: Enviar tips y noticias estructuradas a la redacción
 
 ## 🔒 Configuración de Seguridad
 

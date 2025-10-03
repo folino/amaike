@@ -36,6 +36,8 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
     const sources = allSources.filter(source => 
       source.web?.uri?.startsWith('https://www.eleco.com.ar')
     );
+    console.log("response", response);
+    console.log("All sources", allSources);
     console.log("sources", sources);
     console.log("text", text);
     return { text, sources };
