@@ -1,0 +1,5 @@
+{
+  "name": "AmAIke - Asistente de El Eco de Tandil",
+  "description": "An AI-powered conversational assistant for the online newspaper 'El Eco de Tandil'. It exclusively uses the newspaper's content to answer user queries, acting as a smart search interface.",
+  "requestFramePermissions": []
+}
