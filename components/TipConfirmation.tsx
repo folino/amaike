@@ -143,3 +143,4 @@ const TipConfirmation: React.FC<TipConfirmationProps> = ({
 };
 
 export default TipConfirmation;
+

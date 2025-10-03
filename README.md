@@ -64,7 +64,8 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
 │   ├── TipConfirmation.tsx # Confirmación de datos recopilados
 │   └── TipSubmissionStatus.tsx # Estado del envío de tips
 ├── services/            # Servicios
-│   ├── geminiService.ts # Integración con Google Gemini
+│   ├── geminiService.ts # Integración con Google Gemini y búsqueda dual
+│   ├── elecoApiService.ts # Servicio para API directa de El Eco
 │   └── tipSubmissionService.ts # Servicio para envío de tips
 ├── constants.ts         # Constantes y prompt del sistema
 ├── types.ts           # Definiciones de tipos TypeScript
@@ -74,14 +75,19 @@ AmAIke es un asistente virtual de inteligencia artificial desarrollado para El E
 
 ## 🤖 Cómo Funciona AmAIke
 
-### Sistema de Búsqueda
+### Sistema de Búsqueda Dual
 1. **Consulta del Usuario**: El usuario hace una pregunta en el chat
-2. **Procesamiento AI**: Google Gemini procesa la consulta con búsqueda web habilitada
-3. **Filtrado de Fuentes**: Solo se muestran resultados de eleco.com.ar
-4. **Respuesta Contextual**: AmAIke responde basándose únicamente en el contenido del periódico
-5. **Recopilación de Tips**: Si no se encuentran artículos relevantes, AmAIke ofrece la opción de recopilar información nueva
+2. **Búsqueda Gemini**: Google Gemini procesa la consulta con búsqueda web habilitada
+3. **Búsqueda Directa API**: Extracción de palabras clave para búsquedas múltiples en la API de El Eco
+4. **Filtrado de Fuentes**: Solo se muestran resultados de eleco.com.ar
+5. **Combinación de Resultados**: Integración inteligente de ambos métodos de búsqueda
+6. **Respuesta Contextual**: AmAIke responde basándose únicamente en el contenido del periódico
+7. **Recopilación de Tips**: Si no se encuentran artículos relevantes, AmAIke ofrece la opción de recopilar información nueva
 
 ### Características Especiales
+- **Búsqueda Dual Avanzada**: Combina búsqueda web de Gemini con API directa de El Eco para máxima cobertura
+- **Extracción Inteligente de Palabras Clave**: Analiza consultas para realizar múltiples búsquedas específicas
+- **Filtrado Inteligente**: Evita búsquedas genéricas que retornarían resultados irrelevantes
 - **Recopilación Estructurada de Tips**: Sistema avanzado que recopila información de manera estructurada (qué, cuándo, dónde, quién, cómo)
 - **Detección Inteligente**: Identifica cuando no se encuentra información útil, incluso si hay resultados parciales
 - **Validación de Plausibilidad**: Evalúa si la información aportada es lógicamente posible
