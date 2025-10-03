@@ -73,7 +73,7 @@ const App: React.FC = () => {
         console.log('Sources found:', sources.length);
         console.log('Text contains no-info indicators:', text);
       }
-
+      console.log("Final AI text:", finalAiText);
       const aiResponse: ChatMessageType = {
         id: Date.now() + 1,
         sender: 'ai',
