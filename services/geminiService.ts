@@ -91,14 +91,8 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
  * Generates a summary from El Eco API results
  */
 const generateElecoSummary = (articles: any[]): string => {
-  if (articles.length === 0) return '';
-  
-  const summary = articles.slice(0, 3).map(article => {
-    const date = new Date(article.created_at).toLocaleDateString('es-AR');
-    return `• ${article.title} (${date})`;
-  }).join('\n');
-  
-  return `\n\n**Resultados adicionales de El Eco:**\n${summary}`;
+  // Don't generate additional text since sources are displayed by UI
+  return '';
 };
 
 /**

@@ -17,18 +17,24 @@ export const extractSearchKeywords = async (userQuery: string): Promise<SearchKe
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const keywordPrompt = `
-Eres un experto en extracción de palabras clave para búsquedas en bases de datos de noticias locales.
+Eres un experto en extracción de palabras clave para búsquedas SQL en bases de datos de noticias.
 
 CONSULTA: "${userQuery}"
 
-TAREA: Extrae SOLO las palabras clave más específicas y relevantes para buscar en noticias de Tandil.
+CONTEXTO IMPORTANTE: Las palabras clave se usarán en consultas SQL con LIKE, donde:
+- "Santamarina" encontrará "Santamarina", "santamarina", "SANTAMARINA"
+- "juega" es un verbo genérico que NO encontrará artículos relevantes
+- Solo nombres propios, lugares e instituciones son útiles para LIKE
 
-REGLAS ESTRICTAS:
-1. SOLO extrae nombres de personas, lugares específicos, instituciones, eventos concretos
-2. NUNCA incluyas palabras genéricas como: "que", "se", "sabe", "de", "la", "calle", "información", "noticias", "municipio", "gobierno", "hay", "sobre", "acerca"
-3. Si la consulta es muy genérica (ej: "noticias del municipio"), devuelve primary vacío
-4. Preserva nombres completos: "San Martín", "José de San Martín", "Juan Manazzoni"
-5. Máximo 1 palabra clave principal, máximo 2 secundarias
+TAREA: Extrae SOLO palabras clave que funcionen bien con SQL LIKE para encontrar artículos relevantes.
+
+REGLAS ESTRICTAS PARA SQL LIKE:
+1. SOLO nombres propios: personas, lugares, instituciones, equipos, eventos
+2. NUNCA verbos: "juega", "pasó", "sabe", "dice", "afirma", "declara"
+3. NUNCA palabras genéricas: "que", "se", "de", "la", "calle", "información", "noticias", "municipio", "gobierno", "hay", "sobre", "acerca", "cuándo", "dónde", "cómo", "por qué"
+4. Si la consulta es muy genérica, devuelve primary vacío
+5. Preserva nombres completos: "San Martín", "José de San Martín", "Juan Manazzoni"
+6. Máximo 1 palabra clave principal, máximo 2 secundarias
 
 FORMATO OBLIGATORIO (JSON):
 {
@@ -36,13 +42,14 @@ FORMATO OBLIGATORIO (JSON):
   "secondary": ["palabra_clave_2", "palabra_clave_3"]
 }
 
-EJEMPLOS CORRECTOS:
+EJEMPLOS CORRECTOS PARA SQL LIKE:
+- "¿Cuándo juega Santamarina?" → {"primary": "santamarina", "secondary": []}
 - "¿Qué pasó con Pedersoli?" → {"primary": "pedersoli", "secondary": []}
 - "Accidente en San Martín" → {"primary": "san martín", "secondary": ["accidente"]}
 - "Noticias del municipio" → {"primary": "", "secondary": []}
 - "Información sobre Juan Manazzoni" → {"primary": "juan manazzoni", "secondary": []}
-- "¿Qué se sabe de la calle de Pedersoli?" → {"primary": "pedersoli", "secondary": []}
-- "Accidente en la calle San Martín" → {"primary": "san martín", "secondary": ["accidente"]}
+- "¿Dónde está la calle de Pedersoli?" → {"primary": "pedersoli", "secondary": []}
+- "¿Cómo está el Hospital Santamarina?" → {"primary": "hospital santamarina", "secondary": []}
 
 RESPUESTA (solo JSON, sin explicaciones):`;
 
