@@ -73,7 +73,7 @@ const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
       },
       body: JSON.stringify({
         fields: {
-          'Timestamp': new Date(logData.timestamp).toISOString(),
+          'Timestamp': new Date().toISOString().split('T')[0], // Try YYYY-MM-DD format
           'User Query': logData.userQuery,
           'Response Length': logData.responseLength,
           'Sources Found': logData.sourcesFound,
@@ -90,7 +90,7 @@ const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
       console.error('❌ Airtable error details:', errorText);
       console.error('❌ Request data sent:', {
         fields: {
-          'Timestamp': logData.timestamp,
+          'Timestamp': new Date().toISOString().split('T')[0],
           'User Query': logData.userQuery,
           'Response Length': logData.responseLength,
           'Sources Found': logData.sourcesFound,
