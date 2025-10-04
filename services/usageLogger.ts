@@ -48,6 +48,20 @@ export const logUsage = async (userQuery: string, responseLength: number, source
 };
 
 /**
+ * Fallback logging for when Airtable is not available
+ */
+const logToConsole = (logData: UsageLog): void => {
+  console.log('📊 [FALLBACK] Usage Log:', {
+    timestamp: logData.timestamp,
+    query: logData.userQuery,
+    responseLength: logData.responseLength,
+    sources: logData.sourcesFound,
+    hasCTA: logData.hasCallToAction,
+    session: logData.sessionId
+  });
+};
+
+/**
  * Sends log data to Airtable
  */
 const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
@@ -56,8 +70,23 @@ const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
     const airtableBaseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
     const airtableTableName = import.meta.env.VITE_AIRTABLE_TABLE_NAME || 'Usage Logs';
     
+    // Enhanced debugging for production
+    console.log('🔍 Airtable Config Debug:', {
+      hasApiKey: !!airtableApiKey,
+      hasBaseId: !!airtableBaseId,
+      apiKeyLength: airtableApiKey?.length || 0,
+      baseId: airtableBaseId,
+      tableName: airtableTableName,
+      env: import.meta.env.MODE
+    });
+    
     if (!airtableApiKey || !airtableBaseId) {
-      console.log('Airtable not configured, skipping external logging');
+      console.log('❌ Airtable not configured, using fallback logging');
+      console.log('Missing:', {
+        apiKey: !airtableApiKey ? 'VITE_AIRTABLE_API_KEY' : 'OK',
+        baseId: !airtableBaseId ? 'VITE_AIRTABLE_BASE_ID' : 'OK'
+      });
+      logToConsole(logData);
       return;
     }
 
@@ -88,6 +117,7 @@ const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Airtable error details:', errorText);
+      console.error('❌ Request URL:', airtableUrl);
       console.error('❌ Request data sent:', {
         fields: {
           'Timestamp': new Date().toISOString().split('T')[0],
@@ -98,12 +128,18 @@ const sendToLoggingService = async (logData: UsageLog): Promise<void> => {
           'Session ID': logData.sessionId,
         }
       });
+      console.error('❌ Environment check:', {
+        mode: import.meta.env.MODE,
+        hasEnv: !!import.meta.env.VITE_AIRTABLE_API_KEY
+      });
       throw new Error(`Airtable API error: ${response.status} - ${errorText}`);
     }
 
     console.log('✅ Log sent to Airtable successfully');
   } catch (error) {
     console.warn('Failed to send log to Airtable:', error);
+    console.log('🔄 Using fallback logging...');
+    logToConsole(logData);
   }
 };
 
