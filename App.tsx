@@ -7,6 +7,7 @@ import TipConfirmation from './components/TipConfirmation';
 import TipSubmissionStatus from './components/TipSubmissionStatus';
 import { getAmAIkeResponse } from './services/geminiService';
 import { submitNewsTip, submitViaEmail, validateCollectedInformation } from './services/tipSubmissionService';
+import { logUsage, incrementQueryCount } from './services/usageLogger';
 import type { ChatMessage as ChatMessageType, NewsTip, CollectedInformation, SubmissionResponse } from './types';
 
 const App: React.FC = () => {
@@ -45,6 +46,11 @@ const App: React.FC = () => {
 
     try {
       const { text, sources } = await getAmAIkeResponse(messagesWithUserReply);
+
+      // Log usage for testing
+      incrementQueryCount();
+      const hasCallToAction = text.includes('¿Me querés contar más?');
+      await logUsage(userMessage, text.length, sources.length, hasCallToAction);
 
       let finalAiText = text;
       
