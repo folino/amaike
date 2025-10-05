@@ -7,6 +7,9 @@ const ELECO_API_BASE_URL = 'https://articapiv3.eleco.com.ar/api/v2/search';
  * Uses Gemini to intelligently identify the most relevant search terms
  */
 export const extractSearchKeywords = async (userQuery: string): Promise<SearchKeywords> => {
+  const extractionStartTime = Date.now();
+  console.log('🧠 Starting AI keyword extraction for query:', userQuery);
+  
   try {
     const { GoogleGenAI } = await import("@google/genai");
     
@@ -26,7 +29,7 @@ CONTEXTO IMPORTANTE: Las palabras clave se usarán en consultas SQL con LIKE, do
 - "juega" es un verbo genérico que NO encontrará artículos relevantes
 - Solo nombres propios, lugares e instituciones son útiles para LIKE
 
-TAREA: Extrae SOLO palabras clave que funcionen bien con SQL LIKE para encontrar artículos relevantes.
+TAREA: Extrae SOLO la palabra clave más importante que funcione bien con SQL LIKE para encontrar artículos relevantes.
 
 REGLAS ESTRICTAS PARA SQL LIKE:
 1. SOLO nombres propios: personas, lugares, instituciones, equipos, eventos
@@ -34,32 +37,35 @@ REGLAS ESTRICTAS PARA SQL LIKE:
 3. NUNCA palabras genéricas: "que", "se", "de", "la", "calle", "información", "noticias", "municipio", "gobierno", "hay", "sobre", "acerca", "cuándo", "dónde", "cómo", "por qué"
 4. Si la consulta es muy genérica, devuelve primary vacío
 5. Preserva nombres completos: "San Martín", "José de San Martín", "Juan Manazzoni"
-6. Máximo 1 palabra clave principal, máximo 2 secundarias
+6. Solo 1 palabra clave principal
 
 FORMATO OBLIGATORIO (JSON):
 {
-  "primary": "palabra_clave_principal_o_vacio",
-  "secondary": ["palabra_clave_2", "palabra_clave_3"]
+  "primary": "palabra_clave_principal_o_vacio"
 }
 
 EJEMPLOS CORRECTOS PARA SQL LIKE:
-- "¿Cuándo juega Santamarina?" → {"primary": "santamarina", "secondary": []}
-- "¿Qué pasó con Pedersoli?" → {"primary": "pedersoli", "secondary": []}
-- "Accidente en San Martín" → {"primary": "san martín", "secondary": ["accidente"]}
-- "Noticias del municipio" → {"primary": "", "secondary": []}
-- "Información sobre Juan Manazzoni" → {"primary": "juan manazzoni", "secondary": []}
-- "¿Dónde está la calle de Pedersoli?" → {"primary": "pedersoli", "secondary": []}
-- "¿Cómo está el Hospital Santamarina?" → {"primary": "hospital santamarina", "secondary": []}
+- "¿Cuándo juega Santamarina?" → {"primary": "santamarina"}
+- "¿Qué pasó con Pedersoli?" → {"primary": "pedersoli"}
+- "Accidente en San Martín" → {"primary": "san martín"}
+- "Noticias del municipio" → {"primary": ""}
+- "Información sobre Juan Manazzoni" → {"primary": "juan manazzoni"}
+- "¿Dónde está la calle de Pedersoli?" → {"primary": "pedersoli"}
+- "¿Cómo está el Hospital Santamarina?" → {"primary": "hospital santamarina"}
 
 RESPUESTA (solo JSON, sin explicaciones):`;
 
+    const aiStartTime = Date.now();
+    console.log('🤖 Calling Gemini for keyword extraction...');
+    
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ role: 'user', parts: [{ text: keywordPrompt }] }],
     });
 
     const responseText = response.text.trim();
-    console.log('AI keyword extraction response:', responseText);
+    console.log(`✅ AI keyword extraction completed in ${Date.now() - aiStartTime}ms`);
+    console.log('📝 AI keyword extraction response:', responseText);
     
     // Try to parse JSON response
     try {
@@ -73,32 +79,39 @@ RESPUESTA (solo JSON, sin explicaciones):`;
       }
       
       const keywords = JSON.parse(jsonText);
-      console.log('Parsed keywords:', keywords);
+      console.log('✅ Successfully parsed keywords:', keywords);
       
       // Validate the response structure
-      if (typeof keywords.primary === 'string' && Array.isArray(keywords.secondary)) {
-        return {
+      if (typeof keywords.primary === 'string') {
+        const result = {
           primary: keywords.primary || '',
-          secondary: keywords.secondary || []
+          secondary: [] // Always empty now
         };
+        console.log(`⚙️ Keyword extraction completed in ${Date.now() - extractionStartTime}ms:`, result);
+        return result;
       } else {
         throw new Error('Invalid response structure');
       }
     } catch (parseError) {
-      console.warn('Failed to parse AI keyword response, using fallback');
+      console.warn('⚠️ Failed to parse AI keyword response, using fallback');
       console.log('Parse error:', parseError);
       console.log('Raw response:', responseText);
-      return fallbackKeywordExtraction(userQuery);
+      const fallbackResult = fallbackKeywordExtraction(userQuery);
+      console.log(`🔄 Fallback keyword extraction completed in ${Date.now() - extractionStartTime}ms:`, fallbackResult);
+      return fallbackResult;
     }
   } catch (error) {
-    console.error('Error extracting keywords with AI:', error);
+    const errorTime = Date.now() - extractionStartTime;
+    console.error(`❌ Error extracting keywords with AI after ${errorTime}ms:`, error);
     // Fallback to simple extraction
-    return fallbackKeywordExtraction(userQuery);
+    const fallbackResult = fallbackKeywordExtraction(userQuery);
+    console.log(`🔄 Fallback keyword extraction completed in ${errorTime}ms:`, fallbackResult);
+    return fallbackResult;
   }
 };
 
 /**
- * Fallback keyword extraction when AI fails
+ * Fallback keyword extraction when AI fails - only returns primary keyword
  */
 const fallbackKeywordExtraction = (userQuery: string): SearchKeywords => {
   // Simple fallback: look for capitalized words (proper nouns)
@@ -112,7 +125,7 @@ const fallbackKeywordExtraction = (userQuery: string): SearchKeywords => {
   if (properNouns.length > 0) {
     return {
       primary: properNouns[0].toLowerCase(),
-      secondary: properNouns.slice(1).map(w => w.toLowerCase())
+      secondary: [] // Always empty now
     };
   }
   
@@ -128,6 +141,9 @@ const fallbackKeywordExtraction = (userQuery: string): SearchKeywords => {
  * Searches El Eco API with a specific keyword
  */
 export const searchElecoApi = async (keyword: string, page: number = 1, size: number = 10): Promise<ElecoApiResponse> => {
+  const apiCallStart = Date.now();
+  console.log(`🌐 Making El Eco API call for keyword: "${keyword}"`);
+  
   try {
     const url = new URL(ELECO_API_BASE_URL);
     url.searchParams.set('filter', JSON.stringify({ search: keyword }));
@@ -147,35 +163,45 @@ export const searchElecoApi = async (keyword: string, page: number = 1, size: nu
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
+    console.log(`✅ El Eco API call completed in ${Date.now() - apiCallStart}ms for "${keyword}", returned ${data.data?.length || 0} articles`);
     console.log("data", data);  
     return data;
   } catch (error) {
-    console.error('Error searching El Eco API:', error);
+    const errorTime = Date.now() - apiCallStart;
+    console.error(`❌ Error searching El Eco API after ${errorTime}ms for keyword "${keyword}":`, error);
     throw error;
   }
 };
 
 /**
- * Performs multiple searches with AI-extracted keywords
- * Uses Gemini to intelligently extract the most relevant search terms
+ * Performs single keyword search with AI-extracted primary keyword
+ * Reduces API calls by using only the most relevant keyword
  */
 export const performMultiKeywordSearch = async (userQuery: string): Promise<ElecoArticle[]> => {
+  const searchStartTime = Date.now();
+  console.log('🔍 Starting single keyword search for:', userQuery);
+  
   const allArticles: ElecoArticle[] = [];
   const seenIds = new Set<number>();
 
   try {
     // Extract keywords using AI
+    const keywordStartTime = Date.now();
     const keywords = await extractSearchKeywords(userQuery);
+    console.log(`🔑 Keywords extracted in ${Date.now() - keywordStartTime}ms:`, keywords);
     
     // Only search if we have a valid primary keyword
     if (!keywords.primary || keywords.primary.trim() === '') {
-      console.log('No valid primary keyword found, skipping direct API search');
+      console.log('⚠️ No valid primary keyword found, skipping direct API search');
       return [];
     }
 
-    // Search with primary keyword
-    console.log(`Searching with AI-extracted primary keyword: "${keywords.primary}"`);
+    // Search with primary keyword only
+    const primarySearchStart = Date.now();
+    console.log(`🎯 Searching with AI-extracted primary keyword: "${keywords.primary}"`);
     const primaryResults = await searchElecoApi(keywords.primary);
+    console.log(`✅ Primary search completed in ${Date.now() - primarySearchStart}ms, found ${primaryResults.data?.length || 0} articles`);
+    
     if (primaryResults.data) {
       primaryResults.data.forEach(article => {
         if (!seenIds.has(article.id)) {
@@ -185,37 +211,18 @@ export const performMultiKeywordSearch = async (userQuery: string): Promise<Elec
       });
     }
 
-    // Search with secondary keywords (limit to 2 to avoid too many requests)
-    const validSecondaryKeywords = keywords.secondary
-      .filter(keyword => keyword && keyword.trim() !== '')
-      .slice(0, 2);
-    
-    console.log(`AI-extracted secondary keywords: ${validSecondaryKeywords.join(', ')}`);
-    
-    for (const keyword of validSecondaryKeywords) {
-      try {
-        console.log(`Searching with secondary keyword: "${keyword}"`);
-        const secondaryResults = await searchElecoApi(keyword);
-        if (secondaryResults.data) {
-          secondaryResults.data.forEach(article => {
-            if (!seenIds.has(article.id)) {
-              allArticles.push(article);
-              seenIds.add(article.id);
-            }
-          });
-        }
-      } catch (error) {
-        console.warn(`Error searching with secondary keyword "${keyword}":`, error);
-        // Continue with other keywords even if one fails
-      }
-    }
-
     // Sort by creation date (newest first)
-    return allArticles.sort((a, b) => 
+    const sortedArticles = allArticles.sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
+    
+    console.log(`🏁 Single keyword search completed in ${Date.now() - searchStartTime}ms`);
+    console.log(`📊 Final results: ${sortedArticles.length} articles from 1 search`);
+    
+    return sortedArticles;
   } catch (error) {
-    console.error('Error in AI-powered multi-keyword search:', error);
+    const errorTime = Date.now() - searchStartTime;
+    console.error(`❌ Error in single keyword search after ${errorTime}ms:`, error);
     return [];
   }
 };

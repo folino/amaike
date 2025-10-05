@@ -34,6 +34,11 @@ const App: React.FC = () => {
   }, [messages, isLoading]);
 
   const handleSendMessage = async (userMessage: string) => {
+    const interactionStartTime = Date.now();
+    console.log('\n🎯 === NEW USER INTERACTION STARTED ===');
+    console.log('📝 User message:', userMessage);
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    
     const newUserMessage: ChatMessageType = {
       id: Date.now(),
       sender: 'user',
@@ -43,18 +48,25 @@ const App: React.FC = () => {
     const messagesWithUserReply = [...messages, newUserMessage];
     setMessages(messagesWithUserReply);
     setIsLoading(true);
+    console.log('🔄 Loading state set to true, calling AI service...');
 
     try {
+      const aiServiceStartTime = Date.now();
       const { text, sources } = await getAmAIkeResponse(messagesWithUserReply);
+      const aiServiceTime = Date.now() - aiServiceStartTime;
+      console.log(`🤖 AI service completed in ${aiServiceTime}ms`);
+      console.log(`📊 Response stats: ${text.length} characters, ${sources.length} sources`);
 
       // Log usage for testing
       incrementQueryCount();
       const hasCallToAction = text.includes('¿Me querés contar más?');
+      console.log('📈 Logging usage - has call to action:', hasCallToAction);
       await logUsage(userMessage, text.length, sources.length, hasCallToAction);
 
       let finalAiText = text;
       
       if (text.startsWith('[INFO_RECIBIDA]')) {
+        console.log('📋 Tip collection detected - extracting structured data...');
         // Extract structured data from the conversation
         const collectedData = extractCollectedDataFromConversation(messagesWithUserReply);
         
@@ -68,16 +80,18 @@ const App: React.FC = () => {
             status: 'ready_to_submit',
           };
           
+          console.log('✅ Tip data structured successfully:', tipId);
           setCurrentTip(newsTip);
           setShowTipConfirmation(true);
+        } else {
+          console.log('⚠️ Failed to extract tip data from conversation');
         }
         
         finalAiText = text.replace('[INFO_RECIBIDA]', '').trim();
       } else if (shouldOfferTipCollection(text, sources)) {
         // When no useful information is found, prepare for potential tip collection
-        console.log('No useful information found - ready for potential tip collection');
-        console.log('Sources found:', sources.length);
-        console.log('Text contains no-info indicators:', text);
+        console.log('🔍 No useful information found - ready for potential tip collection');
+        console.log('📊 Analysis: Sources found:', sources.length, 'Text contains no-info indicators');
       }
       console.log("Final AI text:", finalAiText);
       const aiResponse: ChatMessageType = {
@@ -87,7 +101,18 @@ const App: React.FC = () => {
         sources: sources,
       };
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
+      
+      const totalInteractionTime = Date.now() - interactionStartTime;
+      console.log(`🏁 === INTERACTION COMPLETED in ${totalInteractionTime}ms ===`);
+      console.log(`📊 Performance breakdown:`);
+      console.log(`   - AI Service: ${aiServiceTime}ms (${Math.round(aiServiceTime/totalInteractionTime*100)}%)`);
+      console.log(`   - UI Updates: ${totalInteractionTime - aiServiceTime}ms (${Math.round((totalInteractionTime-aiServiceTime)/totalInteractionTime*100)}%)`);
+      console.log('\n');
     } catch (error) {
+      const errorTime = Date.now() - interactionStartTime;
+      console.error(`❌ === INTERACTION FAILED after ${errorTime}ms ===`);
+      console.error('Error details:', error);
+      
       const errorResponse: ChatMessageType = {
         id: Date.now() + 1,
         sender: 'ai',
@@ -95,6 +120,7 @@ const App: React.FC = () => {
       };
       setMessages((prevMessages) => [...prevMessages, errorResponse]);
     } finally {
+      console.log('🔄 Setting loading state to false');
       setIsLoading(false);
     }
   };

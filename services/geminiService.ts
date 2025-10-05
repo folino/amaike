@@ -15,6 +15,9 @@ interface AmAIkeResponse {
 }
 
 export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIkeResponse> => {
+  const startTime = Date.now();
+  console.log('🚀 Starting AmAIke response generation...');
+  
   try {
     const contents = messages.map(msg => ({
       role: msg.sender === 'user' ? 'user' : 'model',
@@ -24,23 +27,44 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
     // Get the latest user message for keyword extraction
     const latestUserMessage = messages.filter(m => m.sender === 'user').pop();
     const userQuery = latestUserMessage?.text || '';
+    console.log('📝 User query:', userQuery);
 
     // Perform dual search: Gemini + Direct El Eco API
+    const dualSearchStartTime = Date.now();
+    console.log('🔄 Starting dual search (Gemini + El Eco API)...');
+    
     const [geminiResponse, elecoResults] = await Promise.allSettled([
       // Gemini search with Google Search
-      ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents,
-        config: {
-          systemInstruction: AMAIKE_SYSTEM_PROMPT,
-          tools: [{ googleSearch: {} }],
-        },
-      }),
+      (async () => {
+        const geminiStartTime = Date.now();
+        console.log('🤖 Starting Gemini search with Google Search...');
+        const result = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: contents,
+          config: {
+            systemInstruction: AMAIKE_SYSTEM_PROMPT,
+            tools: [{ googleSearch: {} }],
+          },
+        });
+        console.log(`✅ Gemini search completed in ${Date.now() - geminiStartTime}ms`);
+        return result;
+      })(),
       // Direct El Eco API search with AI-powered keyword extraction
-      performMultiKeywordSearch(userQuery)
+      (async () => {
+        const elecoStartTime = Date.now();
+        console.log('🔍 Starting El Eco API search with keyword extraction...');
+        const result = await performMultiKeywordSearch(userQuery);
+        console.log(`✅ El Eco API search completed in ${Date.now() - elecoStartTime}ms`);
+        return result;
+      })()
     ]);
+    
+    console.log(`🏁 Dual search completed in ${Date.now() - dualSearchStartTime}ms`);
 
     // Process Gemini response
+    const processingStartTime = Date.now();
+    console.log('⚙️ Processing search results...');
+    
     let geminiText = '';
     let geminiSources: GroundingSource[] = [];
     
@@ -51,6 +75,9 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
       geminiSources = allGeminiSources.filter(source => 
         source.web?.uri?.startsWith('https://www.eleco.com.ar')
       );
+      console.log(`📊 Gemini: ${allGeminiSources.length} total sources, ${geminiSources.length} from El Eco`);
+    } else {
+      console.log('❌ Gemini search failed:', geminiResponse.reason);
     }
 
     // Process El Eco API results
@@ -60,25 +87,28 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
     if (elecoResults.status === 'fulfilled' && elecoResults.value.length > 0) {
       elecoSources = convertToGroundingSources(elecoResults.value);
       elecoText = generateElecoSummary(elecoResults.value);
+      console.log(`📰 El Eco API: ${elecoResults.value.length} articles found`);
+    } else {
+      console.log('❌ El Eco API search failed or returned no results:', elecoResults.status === 'rejected' ? elecoResults.reason : 'No articles found');
     }
-        const allSources = [...geminiSources, ...elecoSources];
+    
+    const allSources = [...geminiSources, ...elecoSources];
 
-        // Temporarily disable AI validation to debug
-        let validatedSources = allSources;
-        console.log("Using all sources without validation:", allSources.length);
-        
-        // Combine results
-        const combinedText = combineSearchResults(geminiText, elecoText, validatedSources.length > 0);
+    // Temporarily disable AI validation to debug
+    let validatedSources = allSources;
+    console.log(`📋 Source summary: Gemini(${geminiSources.length}) + ElEco(${elecoSources.length}) = Total(${allSources.length})`);
+    
+    // Combine results
+    const combinedText = combineSearchResults(geminiText, elecoText, validatedSources.length > 0);
+    
+    console.log(`⚙️ Processing completed in ${Date.now() - processingStartTime}ms`);
+    console.log(`🎯 Final response: ${combinedText.length} characters, ${validatedSources.length} sources`);
+    console.log(`⏱️ Total AmAIke response time: ${Date.now() - startTime}ms`);
 
-        console.log("Gemini sources:", geminiSources.length);
-        console.log("El Eco API sources:", elecoSources.length);
-        console.log("Total sources before validation:", allSources.length);
-        console.log("Validated sources:", validatedSources.length);
-        console.log("Combined text:", combinedText);
-
-        return { text: combinedText, sources: validatedSources };
+    return { text: combinedText, sources: validatedSources };
   } catch (error) {
-    console.error("Error fetching response from Gemini API:", error);
+    const errorTime = Date.now() - startTime;
+    console.error(`❌ Error fetching response from Gemini API after ${errorTime}ms:`, error);
     return {
       text: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo más tarde.",
       sources: []
