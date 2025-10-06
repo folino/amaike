@@ -64,6 +64,15 @@ const App: React.FC = () => {
       await logUsage(userMessage, text.length, sources.length, hasCallToAction);
 
       let finalAiText = text;
+      let finalSources = sources;
+      
+      // Check if we're in tip collection mode
+      const isTipCollectionOngoing = detectTipCollectionProcess(messagesWithUserReply);
+      
+      if (isTipCollectionOngoing) {
+        console.log('📋 Tip collection process detected - hiding sources to focus on information gathering');
+        finalSources = []; // Hide sources during tip collection
+      }
       
       if (text.startsWith('[INFO_RECIBIDA]')) {
         console.log('📋 Tip collection detected - extracting structured data...');
@@ -88,6 +97,7 @@ const App: React.FC = () => {
         }
         
         finalAiText = text.replace('[INFO_RECIBIDA]', '').trim();
+        finalSources = []; // Never show sources when tip is collected
       } else if (shouldOfferTipCollection(text, sources)) {
         // When no useful information is found, prepare for potential tip collection
         console.log('🔍 No useful information found - ready for potential tip collection');
@@ -98,7 +108,7 @@ const App: React.FC = () => {
         id: Date.now() + 1,
         sender: 'ai',
         text: finalAiText,
-        sources: sources,
+        sources: finalSources, // Use finalSources instead of sources
       };
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
       
@@ -125,46 +135,57 @@ const App: React.FC = () => {
     }
   };
 
-  const shouldOfferTipCollection = (text: string, sources: any[]): boolean => {
-    // Check if no sources were found
-    if (sources.length === 0) {
-      return true;
-    }
-
-    // Check if AI explicitly indicates no information was found
-    const noInfoIndicators = [
-      'No he encontrado información específica',
-      'no hay link',
-      'no encontré',
-      'no se encontró',
-      'no hay información',
-      'no hay datos',
-      'no hay artículos',
-      'no hay noticias',
-      'no hay contenido',
-      'no hay resultados',
-      'no hay fuentes',
-      'no hay enlaces',
-      'no hay referencias',
-      'no se pudo encontrar',
-      'no se encontraron',
-      'no hay nada',
-      'no hay evidencia',
-      'no hay registro'
+  const detectTipCollectionProcess = (messages: ChatMessageType[]): boolean => {
+    // Check if we're in the middle of a tip collection conversation
+    const aiMessages = messages.filter(m => m.sender === 'ai');
+    const recentAiMessages = aiMessages.slice(-3); // Check last 3 AI messages
+    
+    // Look for tip collection indicators in recent AI messages
+    const tipCollectionIndicators = [
+      '¿podrías contarme un poco más?',
+      '¿qué fue exactamente lo que pasó?',
+      '¿cuándo ocurrió?',
+      '¿dónde exactamente?',
+      '¿quién estuvo involucrado?',
+      '¿cómo sucedió?',
+      'Para poder entender mejor',
+      'Muchas gracias por tu aporte',
+      'Es muy valioso para nosotros',
+      'para recopilar información',
+      '¿hay testigos?',
+      '¿qué daños hubo?',
+      '¿es algo urgente?'
     ];
+    
+    const isTipCollection = recentAiMessages.some(msg => 
+      tipCollectionIndicators.some(indicator => 
+        msg.text.toLowerCase().includes(indicator.toLowerCase())
+      )
+    );
+    
+    if (isTipCollection) {
+      console.log('🔍 Tip collection process detected in conversation history');
+    }
+    
+    return isTipCollection;
+  };
 
-    const textLower = text.toLowerCase();
-    const hasNoInfoIndicator = noInfoIndicators.some(indicator => textLower.includes(indicator.toLowerCase()));
+  const shouldOfferTipCollection = (text: string, sources: any[]): boolean => {
+    // Always return true since we want to encourage tip collection in all cases
+    // The AI should handle this with the new system prompt, but this serves as backup
     
-    // Also check if the response is very short and doesn't contain useful information
-    const isShortResponse = text.length < 100;
-    const hasNoLinks = !text.includes('https://www.eleco.com.ar');
-    const hasNoCitations = !text.includes('Puedes leer más en:');
+    // Check if the response already contains tip collection call-to-action
+    const hasTipCallToAction = text.includes('¿Sabés algo más sobre este tema?') || 
+                              text.includes('¿Me querés contar más?');
     
-    // If it's a short response with no links or citations, it's likely not useful
-    const isLikelyNotUseful = isShortResponse && hasNoLinks && hasNoCitations;
+    if (hasTipCallToAction) {
+      console.log('✅ Response already includes tip collection call-to-action');
+      return false; // Don't need to add it again
+    }
     
-    return hasNoInfoIndicator || isLikelyNotUseful;
+    // If no call-to-action is present, we should offer tip collection
+    console.log('⚠️ No tip collection call-to-action found in response');
+    return true;
   };
 
   const extractCollectedDataFromConversation = (messages: ChatMessageType[]): CollectedInformation | null => {

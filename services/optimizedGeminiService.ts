@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { OPTIMIZED_AMAIKE_SYSTEM_PROMPT } from '../constants';
+import { AMAIKE_SYSTEM_PROMPT } from '../constants';
 import type { GroundingSource, ChatMessage } from '../types';
 
 if (!process.env.API_KEY) {
@@ -29,7 +29,7 @@ export const getOptimizedAmAIkeResponse = async (messages: ChatMessage[]): Promi
       model: "gemini-2.5-flash",
       contents: contents,
       config: {
-        systemInstruction: OPTIMIZED_AMAIKE_SYSTEM_PROMPT,
+        systemInstruction: AMAIKE_SYSTEM_PROMPT,
         tools: [{ googleSearch: {} }],
       },
     });
