@@ -119,9 +119,12 @@ export const getAmAIkeResponse = async (messages: ChatMessage[]): Promise<AmAIke
 
 /**
  * Generates a summary from El Eco API results
+ * Returns empty string to prevent duplication with Gemini results
  */
 const generateElecoSummary = (articles: any[]): string => {
-  // Don't generate additional text since sources are displayed by UI
+  // Don't generate additional text since Gemini already provides comprehensive responses
+  // and sources are displayed separately by the UI
+  console.log(`📰 El Eco API found ${articles.length} articles - letting Gemini handle the response`);
   return '';
 };
 
@@ -204,17 +207,23 @@ Si ningún artículo es relevante, responde: ninguno`;
 };
 
 /**
- * Combines Gemini and El Eco search results
+ * Combines Gemini and El Eco search results without duplication
  */
 const combineSearchResults = (geminiText: string, elecoText: string, hasSources: boolean): string => {
+  // Clean and trim both texts
+  const cleanGeminiText = geminiText.trim();
+  const cleanElecoText = elecoText.trim();
+  
+  // If no sources, just return Gemini text (El Eco text should be empty anyway)
   if (!hasSources) {
-    return geminiText + (elecoText ? elecoText : '');
+    return cleanGeminiText;
   }
 
-  // If we have sources, combine the texts intelligently
-  if (elecoText && !geminiText.includes('Puedes leer más en:')) {
-    return geminiText + elecoText;
+  // If we have sources, prefer Gemini text as it's more comprehensive
+  // Only add El Eco text if it's different and adds value
+  if (cleanElecoText && cleanElecoText !== cleanGeminiText && !cleanGeminiText.includes(cleanElecoText)) {
+    return cleanGeminiText + '\n\n' + cleanElecoText;
   }
 
-  return geminiText;
+  return cleanGeminiText;
 };

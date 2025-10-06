@@ -66,6 +66,25 @@ const App: React.FC = () => {
       let finalAiText = text;
       let finalSources = sources;
       
+      // Check for response duplication and clean it up
+      const lines = finalAiText.split('\n');
+      const uniqueLines = [];
+      const seenLines = new Set();
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !seenLines.has(trimmedLine)) {
+          uniqueLines.push(line);
+          seenLines.add(trimmedLine);
+        } else if (!trimmedLine) {
+          // Keep empty lines for formatting
+          uniqueLines.push(line);
+        }
+      }
+      
+      finalAiText = uniqueLines.join('\n').replace(/\n\s*\n\s*\n/g, '\n\n'); // Remove excessive line breaks
+      console.log('🧹 Response cleaned for duplication');
+      
       // Check if we're in tip collection mode
       const isTipCollectionOngoing = detectTipCollectionProcess(messagesWithUserReply);
       
@@ -98,10 +117,6 @@ const App: React.FC = () => {
         
         finalAiText = text.replace('[INFO_RECIBIDA]', '').trim();
         finalSources = []; // Never show sources when tip is collected
-      } else if (shouldOfferTipCollection(text, sources)) {
-        // When no useful information is found, prepare for potential tip collection
-        console.log('🔍 No useful information found - ready for potential tip collection');
-        console.log('📊 Analysis: Sources found:', sources.length, 'Text contains no-info indicators');
       }
       console.log("Final AI text:", finalAiText);
       const aiResponse: ChatMessageType = {

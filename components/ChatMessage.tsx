@@ -20,8 +20,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onStartTipCollection
 
   const linkClass = isUser ? 'text-blue-200 hover:text-white underline' : 'text-eleco-blue hover:text-eleco-blue-hover underline';
 
-  // Check if message contains the call-to-action
-  const hasCallToAction = !isUser && message.text.includes('¿Me querés contar más?');
+  // Check if message contains the call-to-action - but don't show the block if AI already included it
+  const hasCallToAction = !isUser && 
+    message.text.includes('¿Me querés contar más?') && 
+    !message.text.includes('🔍 **¿Sabés algo más sobre este tema?**') && // Don't show if AI already has enhanced prompt
+    !message.text.includes('🔍 **¿Me querés contar más?**'); // Don't show if AI already formatted it
 
   return (
     <div className={`w-full flex ${messageContainerClasses} mb-4`}>
