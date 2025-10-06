@@ -1,11 +1,14 @@
 {
   "name": "amaike---asistente-de-el-eco-de-tandil",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/prepare-build.js && vite build",
+    "build:patch": "npm version patch && npm run build",
+    "build:minor": "npm version minor && npm run build",
+    "build:major": "npm version major && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
